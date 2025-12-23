@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, Paragraph},
+    layout::{Constraint, Layout},
+    style::{Color, Style},
+    widgets::Block,
     Terminal,
 };
 use crossterm::{
@@ -12,6 +14,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+
+mod widgets;
 
 fn note_freq(n: usize) -> f32 {
     BASE_FREQ * (2.0_f32).powf(n as f32 / 12.0)
@@ -103,17 +107,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         terminal.draw(|f| {
             let size = f.area();
-            let mut text = String::new();
-            for (key, label) in KEYS.chars().zip(LABELS.chars()) {
-                if playing_chars.contains(&key) {
-                    text.push_str(&format!("{}:*{}* ", key, label));
-                } else {
-                    text.push_str(&format!("{}:{} ", key, label));
-                }
+            // Render full-screen black background
+            let bg_block = Block::default().style(Style::default().bg(Color::Black));
+            f.render_widget(bg_block, size);
+            // Split vertically: top empty, keys (1/7 centered), bottom empty
+            let vertical_areas = Layout::vertical([
+                Constraint::Min(0),
+                Constraint::Ratio(1, 7),
+                Constraint::Min(0),
+            ])
+            .split(size);
+            // Keys in middle area (centered)
+            let key_area = vertical_areas[1];
+            let areas = Layout::horizontal(vec![Constraint::Ratio(1, 12); 12]).split(key_area);
+            for (i, (key, label)) in KEYS.chars().zip(LABELS.chars()).enumerate() {
+                let pressed = playing_chars.contains(&key);
+                let color = widgets::note_color(i);
+                let key_widget = widgets::PianoKey {
+                    note: label,
+                    color,
+                    pressed,
+                };
+                f.render_widget(key_widget, areas[i]);
             }
-            let paragraph = Paragraph::new(text)
-                .block(Block::default().title("Piano").borders(Borders::ALL));
-            f.render_widget(paragraph, size);
         })?;
 
         // Handle events
