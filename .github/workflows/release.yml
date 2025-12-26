@@ -32,7 +32,7 @@ jobs:
 
   build-macos-x86_64:
     name: Build macOS (Intel)
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - name: Checkout
         uses: actions/checkout@v4
