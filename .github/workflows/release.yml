@@ -165,7 +165,7 @@ jobs:
 
             > **Note**: Default keyboard mapping is for QWERTY. You'll almost certainly need to remap keys using `--keys` argument (24 unique ASCII characters).
 
-            See [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full usage instructions.
+            See [README](https://github.com/cem-sirin/muzmuzik/blob/main/README.md) for full usage instructions.
           files: |
             muzmuzik-macos-aarch64/muzmuzik-macos-aarch64
             muzmuzik-macos-x86_64/muzmuzik-macos-x86_64
