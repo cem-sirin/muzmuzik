@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'latest'
+
+jobs:
+  build-macos-aarch64:
+    name: Build macOS (Apple Silicon)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Build
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Rename binary
+        run: mv target/aarch64-apple-darwin/release/muzmuzik muzmuzik-macos-aarch64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muzmuzik-macos-aarch64
+          path: muzmuzik-macos-aarch64
+
+  build-macos-x86_64:
+    name: Build macOS (Intel)
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Build
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Rename binary
+        run: mv target/x86_64-apple-darwin/release/muzmuzik muzmuzik-macos-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muzmuzik-macos-x86_64
+          path: muzmuzik-macos-x86_64
+
+  build-linux-x86_64:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev
+
+      - name: Build
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Strip debug symbols
+        run: strip target/x86_64-unknown-linux-gnu/release/muzmuzik
+
+      - name: Rename binary
+        run: mv target/x86_64-unknown-linux-gnu/release/muzmuzik muzmuzik-linux-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muzmuzik-linux-x86_64
+          path: muzmuzik-linux-x86_64
+
+  build-windows-x86_64:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Rename binary
+        run: mv target/x86_64-pc-windows-msvc/release/muzmuzik.exe muzmuzik-windows-x86_64.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muzmuzik-windows-x86_64.exe
+          path: muzmuzik-windows-x86_64.exe
+
+  release:
+    name: Create Release
+    needs: [build-macos-aarch64, build-macos-x86_64, build-linux-x86_64, build-windows-x86_64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete old releases
+        uses: dev-drprasad/delete-older-releases@v0.3.2
+        with:
+          keep_latest: 1
+          delete_tag_pattern: latest
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest
+          body: |
+            ## Download
+
+            Choose the binary for your platform:
+
+            ### macOS
+            - **Apple Silicon (M1/M2/M3)**: `muzmuzik-macos-aarch64`
+              ```bash
+              chmod +x muzmuzik-macos-aarch64
+              ./muzmuzik-macos-aarch64 --keys "..."
+              ```
+
+            - **Intel**: `muzmuzik-macos-x86_64`
+              ```bash
+              chmod +x muzmuzik-macos-x86_64
+              ./muzmuzik-macos-x86_64 --keys "..."
+              ```
+
+            ### Linux
+            - **x86_64**: `muzmuzik-linux-x86_64`
+              ```bash
+              chmod +x muzmuzik-linux-x86_64
+              ./muzmuzik-linux-x86_64 --keys "..."
+              ```
+              Requires PulseAudio or ALSA installed.
+
+            ### Windows
+            - **x86_64**: `muzmuzik-windows-x86_64.exe`
+              ```cmd
+              muzmuzik-windows-x86_64.exe --keys "..."
+              ```
+
+            > **Note**: Default keyboard mapping is for QWERTY. You'll almost certainly need to remap keys using `--keys` argument (24 unique ASCII characters).
+
+            See [README](https://github.com/${{ github.repository }}/blob/main/README.md) for full usage instructions.
+          files: |
+            muzmuzik-macos-aarch64/muzmuzik-macos-aarch64
+            muzmuzik-macos-x86_64/muzmuzik-macos-x86_64
+            muzmuzik-linux-x86_64/muzmuzik-linux-x86_64
+            muzmuzik-windows-x86_64.exe/muzmuzik-windows-x86_64.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

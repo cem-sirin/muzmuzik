@@ -1,9 +1,13 @@
 [package]
-name = "music"
+name = "muzmuzik"
 version = "0.1.0"
 edition = "2024"
+description = "Playground for exploring music theory and digital sound synthesis from scratch"
+license = "MIT"
+authors = ["Cem Sirin"]
 
 [dependencies]
 cpal = "0.17.0"
 ratatui = "0.29.0"
 crossterm = "0.28"
+clap = { version = "4.5", features = ["derive"] }

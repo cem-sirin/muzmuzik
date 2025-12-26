@@ -169,6 +169,7 @@ impl Widget for Spectrum<'_> {
         let mut peak_mag = 0.0f32;
         let mut peak_bin = 0usize;
 
+        #[allow(clippy::needless_range_loop)]
         for k in 1..half {
             let c = fft_buf[k];
             let mag = (c.re * c.re + c.im * c.im).sqrt();
